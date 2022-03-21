@@ -7,6 +7,7 @@ class UnivariateGaussian:
     """
     Class for univariate Gaussian Distribution Estimator
     """
+
     def __init__(self, biased_var: bool = False) -> UnivariateGaussian:
         """
         Estimator for univariate Gaussian mean and variance parameters
@@ -51,10 +52,31 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+        self.mu_ = X.mean()
+        if len(X) <= 1:
+            self.var_ = 0
+
+        if self.biased_:
+            self.var_ = np.var(X, ddof=0)
+        else:
+            self.var_ = np.var(X, ddof=1)
 
         self.fitted_ = True
         return self
+
+    @staticmethod
+    def _uni_normal_pdf(x: float, mu: float, var: float):
+        """
+        Computes the pdf of a Uni Gaussian normal sample x.
+        parameters
+        ----------
+        x: float, the sample
+        mu: the expected value of x
+        var: the variance of x
+        """
+
+        numerator: float = np.e ** ((-(x - mu) ** 2) / (2 * var))
+        return numerator / np.sqrt(var * 2 * np.pi)
 
     def pdf(self, X: np.ndarray) -> np.ndarray:
         """
@@ -75,8 +97,10 @@ class UnivariateGaussian:
         ValueError: In case function was called prior fitting the model
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+            raise ValueError(
+                "Estimator must first be fitted before calling `pdf` function")
+        normal_pdf_vector: np.Array = np.vectorize(UnivariateGaussian._uni_normal_pdf)
+        return normal_pdf_vector(X, self.mu_, self.var_)
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
@@ -97,13 +121,16 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        raise NotImplementedError()
+        normal_pdf_vector: np.Array = np.vectorize(UnivariateGaussian._uni_normal_pdf)
+        pdf_results_vector: np.Array = normal_pdf_vector(X, mu, sigma)
+        return np.sum(np.log(pdf_results_vector))
 
 
 class MultivariateGaussian:
     """
     Class for multivariate Gaussian Distribution Estimator
     """
+
     def __init__(self):
         """
         Initialize an instance of multivariate Gaussian estimator
@@ -143,10 +170,29 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+        self.mu_ = np.mean(X, axis=0)
+        self.cov_ = np.cov(X, rowvar=False)
 
         self.fitted_ = True
         return self
+
+    @staticmethod
+    def _multi_normal_pdf(x: np.Array, mu: float, cov: np.Array):
+        """
+        Computes the pdf of a Multi Gaussian normal sample x.
+        parameters
+        ----------
+        x: np array, the sample
+        mu: the expected value of x
+        cov: the covariance matrix of x
+        """
+
+        d: float = len(x)
+        exponent: float = np.dot(
+            np.dot(np.transpose(-(1 / 2) * (x - mu))), np.linalg.inv(cov),
+            x - mu)[0]
+        return 1 / (np.sqrt(np.power(2 * np.pi, d) * np.linalg.det(cov))) * \
+               np.power(np.e, exponent)
 
     def pdf(self, X: np.ndarray):
         """
@@ -167,11 +213,15 @@ class MultivariateGaussian:
         ValueError: In case function was called prior fitting the model
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+            raise ValueError(
+                "Estimator must first be fitted before calling `pdf` function")
+        normal_pdf_vector: np.Array = \
+            np.vectorize(MultivariateGaussian._multi_normal_pdf)
+        return normal_pdf_vector(X, self.mu_, self.cov_)
 
     @staticmethod
-    def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
+    def log_likelihood(mu: np.ndarray, cov: np.ndarray,
+                       X: np.ndarray) -> float:
         """
         Calculate the log-likelihood of the data under a specified Gaussian model
 
@@ -189,4 +239,10 @@ class MultivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        raise NotImplementedError()
+        dot_sum: np.Array = np.sum((X - mu) @ np.linalg.inv(cov) * (X - mu))
+        return -(1/2) * (
+                len(X) * np.log(
+                                2 * np.power(np.pi, len(X[0])
+                                )
+                                * np.linalg.det(cov))
+                + dot_sum)
