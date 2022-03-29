@@ -99,7 +99,8 @@ class UnivariateGaussian:
         if not self.fitted_:
             raise ValueError(
                 "Estimator must first be fitted before calling `pdf` function")
-        normal_pdf_vector: np.Array = np.vectorize(UnivariateGaussian._uni_normal_pdf)
+        normal_pdf_vector: np.Array = np.vectorize(
+            UnivariateGaussian._uni_normal_pdf)
         return normal_pdf_vector(X, self.mu_, self.var_)
 
     @staticmethod
@@ -121,7 +122,8 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        normal_pdf_vector: np.Array = np.vectorize(UnivariateGaussian._uni_normal_pdf)
+        normal_pdf_vector: np.Array = np.vectorize(
+            UnivariateGaussian._uni_normal_pdf)
         pdf_results_vector: np.Array = normal_pdf_vector(X, mu, sigma)
         return np.sum(np.log(pdf_results_vector))
 
@@ -188,9 +190,9 @@ class MultivariateGaussian:
         """
 
         d: float = len(x)
-        exponent: float = np.dot(
-            np.dot(np.transpose(-(1 / 2) * (x - mu))), np.linalg.inv(cov),
-            x - mu)[0]
+        exponent = np.dot(
+            np.dot(np.transpose(-(1 / 2) * (x - mu)), np.linalg.inv(cov)),
+            x - mu)
         return 1 / (np.sqrt(np.power(2 * np.pi, d) * np.linalg.det(cov))) * \
                np.power(np.e, exponent)
 
@@ -215,9 +217,12 @@ class MultivariateGaussian:
         if not self.fitted_:
             raise ValueError(
                 "Estimator must first be fitted before calling `pdf` function")
-        normal_pdf_vector: np.Array = \
-            np.vectorize(MultivariateGaussian._multi_normal_pdf)
-        return normal_pdf_vector(X, self.mu_, self.cov_)
+        all_pdfs = []
+        for sample in X:
+            all_pdfs.append(MultivariateGaussian._multi_normal_pdf(sample,
+                                                                  self.mu_,
+                                                                  self.cov_))
+        return all_pdfs
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray,
@@ -240,9 +245,9 @@ class MultivariateGaussian:
             log-likelihood calculated over all input data and under given parameters of Gaussian
         """
         dot_sum: np.Array = np.sum((X - mu) @ np.linalg.inv(cov) * (X - mu))
-        return -(1/2) * (
+        return -(1 / 2) * (
                 len(X) * np.log(
-                                2 * np.power(np.pi, len(X[0])
-                                )
-                                * np.linalg.det(cov))
+            2 * np.power(np.pi, len(X[0])
+                         )
+            * np.linalg.det(cov))
                 + dot_sum)
